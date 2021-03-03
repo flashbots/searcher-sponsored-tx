@@ -17,7 +17,35 @@ Environment Variables
 - PRIVATE_KEY_DONOR - Private key for an account that has ETH that will be used to fund the miner for the "ZERO_GAS" transactions 
 - FLASHBOTS_KEY_ID / FLASHBOTS_SECRET - Flashbots submissions requires an API key. [Apply for an API key here](https://docs.google.com/forms/d/e/1FAIpQLSd4AKrS-vcfW1X-dQvkFY73HysoKfkhcd-31Tj8frDAU6D6aQ/viewform) 
 - RECIPIENT - Ethereum EOA to receive assets from ZERO_GAS account
-- GAS_PRICE_FLOOR_IN_GWEI _[Optional]_ - Sets a gas price that will cause the process to exit if the bundle simulation ever reports a gas price less than.
+
+Setting Miner Reward
+====================
+Inside `src/index.ts` is :
+```
+const MINER_REWARD_IN_WEI = ETHER.div(1000).mul(12); // 0.012 ETH
+```
+
+This is the amount, in `wei`, sent to `block.coinbase` from the DONOR EOA. This value is specified in TypeScript, instead of an ENVIRONMENT variable, due to how important it is. Setting this to a very large value could result in massive losses of funds to the DONOR EOA. For safety, **do not store large amounts of eth in DONOR EOA**
+
+
+Selecting a different "engine"
+==============================
+This system can operate against different protocols by swapping a new "engine" class that adheres to "Base" functionality in the `main()` function. Currently available engines:
+- `TransferERC20`
+- `CryptoKitties`
+  
+
+An engine accepts relevant parameters during construction and provides functions to retrive transaction descriptions to be passed in to Flashbots. Selecting and configuring an different engine requires directly modifying the source, uncommenting the engine and setting the necessary variables.
+
 
 Usage
 ======================
+```
+$ npm install
+$ PRIVATE_KEY_ZERO_GAS=__COMPROMISED_PRIVATE_KEY__ \
+    PRIVATE_KEY_DONOR=__FUNDED_PRIVATE_KEY__ \
+    RECIPIENT=__ADDRESS_THAT_RECEIVES_ASSETS__ \
+    FLASHBOTS_KEY_ID=__YOUR_PERSONAL_KEY_ID__ \
+    FLASHBOTS_SECRET=__YOUR_PERSONAL_SECRET__ \
+      npm run start
+```
