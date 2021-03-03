@@ -2,7 +2,7 @@ searcher-sponsored-tx
 =======================
 This repository contains a simple Flashbots "searcher" for submitting a transaction from account X, but paying for the transaction from account Y. This is accomplished by submitting a Flashbots transaction bundle, with the first transaction(s) executing from account X, and the last, single transaction calling a contract which verifies the early transactions ran successfully, then pays the miner.
 
-We hope you will use this repository as an example of how to integrate Flashbots into your own Flashbot searcher (bot). For more information, see the [Flashbots Searcher FAQ](https://hackmd.io/@flashbots/rk-qzgzCD)
+We hope you will use this repository as an example of how to integrate Flashbots into your own Flashbot searcher (bot). For more information, see the [Flashbots Searcher FAQ](https://github.com/flashbots/pm/blob/main/guides/flashbots-alpha.md)
 
 Use case
 ========
@@ -30,12 +30,12 @@ This is the amount, in `wei`, sent to `block.coinbase` from the DONOR EOA. This 
 
 Selecting a different "engine"
 ==============================
-This system can operate against different protocols by swapping a new "engine" class that adheres to "Base" functionality in the `main()` function. Currently available engines:
+This system can operate against different protocols by swapping a new "engine" class that adheres to "Base" functionality in the `main()` function. Available engines:
 - `TransferERC20`
 - `CryptoKitties`
   
 
-An engine accepts relevant parameters during construction and provides functions to retrive transaction descriptions to be passed in to Flashbots. Selecting and configuring an different engine requires directly modifying the source, uncommenting the engine and setting the necessary variables.
+An engine accepts relevant parameters during construction and provides functions to retrieve transaction descriptions to be passed in to Flashbots. Selecting and configuring a different engine requires directly modifying the source, uncommenting the engine and setting the necessary variables.
 
 
 Usage

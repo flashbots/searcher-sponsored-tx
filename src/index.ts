@@ -80,7 +80,7 @@ async function main() {
   provider.on('block', async (blockNumber) => {
     const gasPrice = await checkSimulation(flashbotsProvider, signedBundle);
     const targetBlockNumber = blockNumber + BLOCKS_IN_FUTURE;
-    console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice:`, gasPriceToGwei(gasPrice))
+    console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice: ${gasPriceToGwei(gasPrice)} gwei`)
     const bundleResponse = await flashbotsProvider.sendBundle(bundleTransactions, targetBlockNumber);
     const bundleResolution = await bundleResponse.wait()
     if (bundleResolution === FlashbotsBundleResolution.BundleIncluded) {
