@@ -25,7 +25,7 @@ export async function checkSimulation(flashbotsProvider: FlashbotsBundleProvider
   return gasPrice
 }
 
-export async function printTransactions(bundleTransactions: Array<FlashbotsBundleTransaction>, signedBundle: Array<string>) {
+export async function printTransactions(bundleTransactions: Array<FlashbotsBundleTransaction>, signedBundle: Array<string>): Promise<void> {
   console.log("--------------------------------")
   console.log(
     (await Promise.all(
@@ -43,6 +43,6 @@ export async function printTransactions(bundleTransactions: Array<FlashbotsBundl
   console.log("--------------------------------")
 }
 
-export function gasPriceToGwei(gasPrice: BigNumber) {
+export function gasPriceToGwei(gasPrice: BigNumber): number {
   return gasPrice.mul(100).div(GWEI).toNumber() / 100;
 }
