@@ -17,7 +17,6 @@ const BLOCKS_IN_FUTURE = 2;
 const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
 const PRIVATE_KEY_ZERO_GAS = process.env.PRIVATE_KEY_ZERO_GAS || ""
 const PRIVATE_KEY_DONOR = process.env.PRIVATE_KEY_DONOR || ""
-const FLASHBOTS_KEY_ID = process.env.FLASHBOTS_KEY_ID || "";
 const FLASHBOTS_SECRET = process.env.FLASHBOTS_SECRET || "";
 const RECIPIENT = process.env.RECIPIENT || ""
 
@@ -29,8 +28,8 @@ if (PRIVATE_KEY_DONOR === "") {
   console.warn("Must provide PRIVATE_KEY_DONOR environment variable, corresponding to an Ethereum EOA with ETH to pay miner")
   process.exit(1)
 }
-if (FLASHBOTS_KEY_ID === "" || FLASHBOTS_SECRET === "") {
-  console.warn("Must provide FLASHBOTS_KEY_ID and FLASHBOTS_SECRET environment variable. Please see https://hackmd.io/@flashbots/rk-qzgzCD")
+if (FLASHBOTS_SECRET === "") {
+  console.warn("Must provide FLASHBOTS_SECRET environment variable. Please see https://hackmd.io/@flashbots/rk-qzgzCD")
   process.exit(1)
 }
 if (RECIPIENT === "") {
@@ -42,13 +41,14 @@ const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL);
 
 const walletZeroGas = new Wallet(PRIVATE_KEY_ZERO_GAS, provider);
 const walletDonor = new Wallet(PRIVATE_KEY_DONOR, provider);
+const walletAuth = new Wallet(FLASHBOTS_SECRET, provider)
 
 console.log(`Zero Gas Account: ${walletZeroGas.address}`)
 console.log(`Donor Account: ${walletDonor.address}`)
 console.log(`Miner Reward: ${MINER_REWARD_IN_WEI.mul(1000).div(ETHER).toNumber() / 1000}`)
 
 async function main() {
-  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, FLASHBOTS_KEY_ID, FLASHBOTS_SECRET);
+  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletAuth);
 
   const tokenAddress = "0xFca59Cd816aB1eaD66534D82bc21E7515cE441CF";
   const engine: Base = new TransferERC20(provider, walletZeroGas.address, RECIPIENT, tokenAddress);

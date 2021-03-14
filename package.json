@@ -21,7 +21,7 @@
     "ethers": "^5.0.23"
   },
   "dependencies": {
-    "@flashbots/ethers-provider-bundle": "^0.1.2",
+    "@flashbots/ethers-provider-bundle": "^0.2.0",
     "lodash": "^4.17.20",
     "log-timestamp": "^0.3.0",
     "ts-node": "^9.1.0",
