@@ -1,3 +1,5 @@
+require('dotenv').config()
+
 import {
   FlashbotsBundleProvider,
   FlashbotsBundleResolution,
