@@ -57,9 +57,9 @@ console.log(`Miner Reward: ${MINER_REWARD_IN_WEI.mul(1000).div(ETHER).toNumber()
 async function main() {
   const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay);
 
-  const tokenAddress = "0xfcfC434ee5BfF924222e084a8876Eee74Ea7cfbA"; // rLP Token Address
-  const stakingAddress = "0xdaFCE5670d3F67da9A3A44FE6bc36992e5E2beaB";
-  const wEthAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+  const tokenAddress = "0xfcfC434ee5BfF924222e084a8876Eee74Ea7cfbA";    // rLP token address
+  const stakingAddress = "0xdaFCE5670d3F67da9A3A44FE6bc36992e5E2beaB";  // delta staking contract address
+  const wEthAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";     // wETH token address
   const engine: Base = new TransferERC20(provider, walletZeroGas.address, RECIPIENT, tokenAddress, stakingAddress, wEthAddress, NONCE);
 
   // const kittyIds = [14925,97811];
