@@ -21,6 +21,7 @@ const RECIPIENT = process.env.RECIPIENT || ""
 const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
 const FLASHBOTS_RELAY_SIGNING_KEY = process.env.FLASHBOTS_RELAY_SIGNING_KEY || "";
 const NONCE = parseInt(process.env.NONCE || "0");
+const DRY_RUN = process.env.DRY_RUN ?? false; // if unspecified, it will run the full suite on mainnet; otherwise it will simply simulate the tx
 
 if (PRIVATE_KEY_ZERO_GAS === "") {
   console.warn("Must provide PRIVATE_KEY_ZERO_GAS environment variable, corresponding to Ethereum EOA with assets to be transferred")
@@ -85,23 +86,28 @@ async function main() {
   console.log(`Gas Price: ${gasPriceToGwei(gasPrice)} gwei`)
   console.log(await engine.description())
 
-  provider.on('block', async (blockNumber) => {
-    const gasPrice = await checkSimulation(flashbotsProvider, signedBundle);
-    const targetBlockNumber = blockNumber + BLOCKS_IN_FUTURE;
-    console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice: ${gasPriceToGwei(gasPrice)} gwei`)
-    const bundleResponse = await flashbotsProvider.sendBundle(bundleTransactions, targetBlockNumber);
-    // const bundleResponse = await flashbotsProvider.simulate(signedBundle, targetBlockNumber);
-    const bundleResolution = await bundleResponse.wait()
-    if (bundleResolution === FlashbotsBundleResolution.BundleIncluded) {
-      console.log(`Congrats, included in ${targetBlockNumber}`)
-      process.exit(0)
-    } else if (bundleResolution === FlashbotsBundleResolution.BlockPassedWithoutInclusion) {
-      console.log(`Not included in ${targetBlockNumber}`)
-    } else if (bundleResolution === FlashbotsBundleResolution.AccountNonceTooHigh) {
-      console.log("Nonce too high, bailing")
-      process.exit(1)
-    }
-  })
+  if (DRY_RUN) {
+    console.log(`Dry run ended`);
+    process.exit(0);
+  }
+
+  // provider.on('block', async (blockNumber) => {
+  //   const gasPrice = await checkSimulation(flashbotsProvider, signedBundle);
+  //   const targetBlockNumber = blockNumber + BLOCKS_IN_FUTURE;
+  //   console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice: ${gasPriceToGwei(gasPrice)} gwei`)
+  //   const bundleResponse = await flashbotsProvider.sendBundle(bundleTransactions, targetBlockNumber);
+  //   // const bundleResponse = await flashbotsProvider.simulate(signedBundle, targetBlockNumber);
+  //   const bundleResolution = await bundleResponse.wait()
+  //   if (bundleResolution === FlashbotsBundleResolution.BundleIncluded) {
+  //     console.log(`Congrats, included in ${targetBlockNumber}`)
+  //     process.exit(0)
+  //   } else if (bundleResolution === FlashbotsBundleResolution.BlockPassedWithoutInclusion) {
+  //     console.log(`Not included in ${targetBlockNumber}`)
+  //   } else if (bundleResolution === FlashbotsBundleResolution.AccountNonceTooHigh) {
+  //     console.log("Nonce too high, bailing")
+  //     process.exit(1)
+  //   }
+  // })
 }
 
 main()
