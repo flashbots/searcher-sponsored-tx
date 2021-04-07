@@ -14,11 +14,11 @@ require('log-timestamp');
 const MINER_REWARD_IN_WEI = ETHER.div(1000).mul(12); // 0.012 ETH
 const BLOCKS_IN_FUTURE = 2;
 
-const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
 const PRIVATE_KEY_ZERO_GAS = process.env.PRIVATE_KEY_ZERO_GAS || ""
 const PRIVATE_KEY_DONOR = process.env.PRIVATE_KEY_DONOR || ""
-const FLASHBOTS_RELAY_SIGNING_KEY = process.env.FLASHBOTS_RELAY_SIGNING_KEY || "";
 const RECIPIENT = process.env.RECIPIENT || ""
+const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
+const FLASHBOTS_RELAY_SIGNING_KEY = process.env.FLASHBOTS_RELAY_SIGNING_KEY || "";
 
 if (PRIVATE_KEY_ZERO_GAS === "") {
   console.warn("Must provide PRIVATE_KEY_ZERO_GAS environment variable, corresponding to Ethereum EOA with assets to be transferred")
@@ -82,6 +82,7 @@ async function main() {
     const targetBlockNumber = blockNumber + BLOCKS_IN_FUTURE;
     console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice: ${gasPriceToGwei(gasPrice)} gwei`)
     const bundleResponse = await flashbotsProvider.sendBundle(bundleTransactions, targetBlockNumber);
+    // const bundleResponse = await flashbotsProvider.simulate(signedBundle, targetBlockNumber);
     const bundleResolution = await bundleResponse.wait()
     if (bundleResolution === FlashbotsBundleResolution.BundleIncluded) {
       console.log(`Congrats, included in ${targetBlockNumber}`)
