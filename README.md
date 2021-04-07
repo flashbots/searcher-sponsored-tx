@@ -15,8 +15,9 @@ Environment Variables
 - ETHEREUM_RPC_URL - Ethereum RPC endpoint. Can not be the same as FLASHBOTS_RPC_URL
 - PRIVATE_KEY_ZERO_GAS - Private key for the compromised Ethereum EOA that owns assets that needs to be transferred
 - PRIVATE_KEY_DONOR - Private key for an account that has ETH that will be used to fund the miner for the "ZERO_GAS" transactions 
-- FLASHBOTS_KEY_ID / FLASHBOTS_SECRET - Flashbots submissions requires an API key. [Apply for an API key here](https://docs.google.com/forms/d/e/1FAIpQLSd4AKrS-vcfW1X-dQvkFY73HysoKfkhcd-31Tj8frDAU6D6aQ/viewform) 
 - RECIPIENT - Ethereum EOA to receive assets from ZERO_GAS account
+- FLASHBOTS_RELAY_SIGNING_KEY - whitehat reputation signer private key
+- NONCE - current nonce of compromised account
 
 Setting Miner Reward
 ====================
@@ -40,12 +41,12 @@ An engine accepts relevant parameters during construction and provides functions
 
 Usage
 ======================
-```
-$ npm install
-$ PRIVATE_KEY_ZERO_GAS=__COMPROMISED_PRIVATE_KEY__ \
-    PRIVATE_KEY_DONOR=__FUNDED_PRIVATE_KEY__ \
-    RECIPIENT=__ADDRESS_THAT_RECEIVES_ASSETS__ \
-    ETHEREUM_RPC_URL=__FLASHBOTS_RELAY_URL__ \
-    FLASHBOTS_RELAY_SIGNING_KEY=__WHITEHAT_REPUTATION_SIGNER_PRIVATE_KEY__ \
-      npm run start
+
+```shell
+# edit ENV variables
+cp .env.example .env
+vim .env
+
+npm install
+npm run start
 ```

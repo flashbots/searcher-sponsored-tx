@@ -20,6 +20,7 @@ const PRIVATE_KEY_DONOR = process.env.PRIVATE_KEY_DONOR || ""
 const RECIPIENT = process.env.RECIPIENT || ""
 const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
 const FLASHBOTS_RELAY_SIGNING_KEY = process.env.FLASHBOTS_RELAY_SIGNING_KEY || "";
+const NONCE = parseInt(process.env.NONCE || "0");
 
 if (PRIVATE_KEY_ZERO_GAS === "") {
   console.warn("Must provide PRIVATE_KEY_ZERO_GAS environment variable, corresponding to Ethereum EOA with assets to be transferred")
@@ -36,6 +37,10 @@ if (FLASHBOTS_RELAY_SIGNING_KEY === "") {
 if (RECIPIENT === "") {
   console.warn("Must provide RECIPIENT environment variable, an address which will receive assets")
   process.exit(1)
+}
+if (NONCE === 0) {
+  console.warn("Must provide NONCE environment variable, the nonce of the compromised account");
+  process.exit(1);
 }
 
 const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL);
@@ -54,7 +59,7 @@ async function main() {
   const tokenAddress = "0xfcfC434ee5BfF924222e084a8876Eee74Ea7cfbA"; // rLP Token Address
   const stakingAddress = "0xdaFCE5670d3F67da9A3A44FE6bc36992e5E2beaB";
   const wEthAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  const engine: Base = new TransferERC20(provider, walletZeroGas.address, RECIPIENT, tokenAddress, stakingAddress, wEthAddress);
+  const engine: Base = new TransferERC20(provider, walletZeroGas.address, RECIPIENT, tokenAddress, stakingAddress, wEthAddress, NONCE);
 
   // const kittyIds = [14925,97811];
   // const engine: Base = new CryptoKitties(provider, walletZeroGas.address, RECIPIENT, kittyIds);

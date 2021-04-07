@@ -13,9 +13,9 @@ export class TransferERC20 extends Base {
   private _tokenContract: Contract;
   private _stakingContract: Contract;
   private _wEthContract: Contract;
-  private _nonce: number | undefined;
+  private _nonce: number; // starting nonce of compromised account
 
-  constructor(provider: providers.JsonRpcProvider, sender: string, recipient: string, _tokenAddress: string, _stakingAddress: string, _wEthAddress: string) {
+  constructor(provider: providers.JsonRpcProvider, sender: string, recipient: string, _tokenAddress: string, _stakingAddress: string, _wEthAddress: string, _nonce: number) {
     super()
     if (!isAddress(sender)) throw new Error("Bad Address")
     if (!isAddress(recipient)) throw new Error("Bad Address")
@@ -25,26 +25,27 @@ export class TransferERC20 extends Base {
     this._tokenContract = new Contract(_tokenAddress, ERC20_ABI, provider);
     this._stakingContract = new Contract(_stakingAddress, STAKING_ABI, provider);
     this._wEthContract = new Contract(_wEthAddress, ERC20_ABI, provider);
+    this._nonce = _nonce;
   }
 
   async description(): Promise<string> {
-    return "Transfer ERC20 balance " + (await this.getTokenBalance(this._sender)).toString() + " @ " + this._tokenContract.address + " from " + this._sender + " to " + this._recipient
+    return "Transfer ERC20 balance " + (await this.getTokenBalance()).toString() + " @ " + this._tokenContract.address + " from " + this._sender + " to " + this._recipient
   }
 
   async getZeroGasPriceTx(): Promise<Array<TransactionRequest>> {
-    const tokenBalance = await this.getTokenBalance(this._sender);
-    const wethBalance = await this.getWethBalance(this._sender);
+    const tokenBalance = await this.getTokenBalance();
+    const wethBalance = await this.getWethBalance();
     return [
       { // withdraw rLP from Delta staking contract
         ...(await this._stakingContract.populateTransaction.claimOrStakeAndClaimLP(true)),
         gasPrice: BigNumber.from(0),
-        gasLimit: BigNumber.from(240000),
+        gasLimit: BigNumber.from(240000), // TODO: check gas limit on Delta UI (Reject tx)
         nonce: this._nonce,
       },
       { // withdraw wETH from Delta staking contract (referral bonus)
         ...(await this._stakingContract.populateTransaction.getWETHBonusForReferrals()),
         gasPrice: BigNumber.from(0),
-        gasLimit: BigNumber.from(240000),
+        gasLimit: BigNumber.from(240000), // TODO: check gas limit on Delta UI (Reject tx)
         nonce: this._nonce === undefined ? undefined : this._nonce + 1,
       },
       { // transfer wETH to safe account
@@ -62,12 +63,12 @@ export class TransferERC20 extends Base {
     ]
   }
 
-  private async getTokenBalance(tokenHolder: string): Promise<BigNumber> {
+  private getTokenBalance(): BigNumber {
     // rLP tokens: 24.565 * 10^18
     return BigNumber.from("24565000000000000000");
   }
 
-  private async getWethBalance(tokenHolder: string): Promise<BigNumber> {
+  private getWethBalance(): BigNumber {
     // wETH referral bonus: 0.758 * 10^18
     return BigNumber.from("758000000000000000");
   }
@@ -75,8 +76,8 @@ export class TransferERC20 extends Base {
   async getDonorTx(minerReward: BigNumber): Promise<TransactionRequest> {
     const checkTargets = [this._tokenContract.address]
     const checkPayloads = [this._tokenContract.interface.encodeFunctionData('balanceOf', [this._recipient])]
-    // recipient might ALREADY have a balance of these tokens. checkAndSend only checks the final state, so make sure the final state is precalculated
-    const expectedBalance = (await this.getTokenBalance(this._sender)).add(await this.getTokenBalance(this._recipient))
+    // recipient will not have a token balance, so we can assume that the balance should simply equal the value we transfer
+    const expectedBalance = this.getTokenBalance()
     const checkMatches = [this._tokenContract.interface.encodeFunctionResult('balanceOf', [expectedBalance])]
     return {
       ...(await Base.checkAndSendContract.populateTransaction.check32BytesAndSendMulti(checkTargets, checkPayloads, checkMatches)),
