@@ -1,5 +1,3 @@
-require('dotenv').config()
-
 import {
   FlashbotsBundleProvider,
   FlashbotsBundleResolution,
@@ -11,6 +9,7 @@ import { Base } from "./engine/Base";
 import { checkSimulation, ETHER, gasPriceToGwei, printTransactions } from "./utils";
 // import { CryptoKitties } from "./engine/CryptoKitties";
 
+require('dotenv').config()
 require('log-timestamp');
 
 const MINER_REWARD_IN_WEI = ETHER.div(1000).mul(12); // 0.012 ETH
