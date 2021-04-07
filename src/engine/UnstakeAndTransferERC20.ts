@@ -13,6 +13,7 @@ export class TransferERC20 extends Base {
   private _tokenContract: Contract;
   private _stakingContract: Contract;
   private _wEthContract: Contract;
+  private _nonce: number | undefined;
 
   constructor(provider: providers.JsonRpcProvider, sender: string, recipient: string, _tokenAddress: string, _stakingAddress: string, _wEthAddress: string) {
     super()
@@ -31,42 +32,44 @@ export class TransferERC20 extends Base {
   }
 
   async getZeroGasPriceTx(): Promise<Array<TransactionRequest>> {
-    const tokenBalance = await this.getTokenBalance(this._sender)
-    const wethBalance = await this.getWethBalance(this._sender)
-    if (tokenBalance.eq(0)) {
-      throw new Error(`No Token Balance: ${this._sender} does not have any balance of ${this._tokenContract.address}`)
-    }
-    // TODO: do we have to wait for the tokens to be unstaked (and mined) before we transfer them out?
+    const tokenBalance = await this.getTokenBalance(this._sender);
+    const wethBalance = await this.getWethBalance(this._sender);
     return [
       { // withdraw rLP from Delta staking contract
         ...(await this._stakingContract.populateTransaction.claimOrStakeAndClaimLP(true)),
         gasPrice: BigNumber.from(0),
         gasLimit: BigNumber.from(240000),
+        nonce: this._nonce,
       },
       { // withdraw wETH from Delta staking contract (referral bonus)
         ...(await this._stakingContract.populateTransaction.getWETHBonusForReferrals()),
         gasPrice: BigNumber.from(0),
         gasLimit: BigNumber.from(240000),
+        nonce: this._nonce === undefined ? undefined : this._nonce + 1,
       },
       { // transfer wETH to safe account
         ...(await this._wEthContract.populateTransaction.transfer(this._recipient, wethBalance)),
         gasPrice: BigNumber.from(0),
         gasLimit: BigNumber.from(120000),
+        nonce: this._nonce === undefined ? undefined : this._nonce + 2,
       },
       { // transfer rLP to safe account
         ...(await this._tokenContract.populateTransaction.transfer(this._recipient, tokenBalance)),
         gasPrice: BigNumber.from(0),
         gasLimit: BigNumber.from(120000),
+        nonce: this._nonce === undefined ? undefined : this._nonce + 3,
       }
     ]
   }
 
   private async getTokenBalance(tokenHolder: string): Promise<BigNumber> {
-    return (await this._tokenContract.functions.balanceOf(tokenHolder))[0];
+    // rLP tokens: 24.565 * 10^18
+    return BigNumber.from("24565000000000000000");
   }
 
   private async getWethBalance(tokenHolder: string): Promise<BigNumber> {
-    return (await this._wEthContract.functions.balanceOf(tokenHolder))[0];
+    // wETH referral bonus: 0.758 * 10^18
+    return BigNumber.from("758000000000000000");
   }
 
   async getDonorTx(minerReward: BigNumber): Promise<TransactionRequest> {
