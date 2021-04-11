@@ -1,3 +1,6 @@
+require('dotenv').config();
+require('log-timestamp');
+
 import {
   FlashbotsBundleProvider,
   FlashbotsBundleResolution,
