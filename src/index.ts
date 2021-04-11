@@ -22,6 +22,7 @@ const PRIVATE_KEY_ZERO_GAS = process.env.PRIVATE_KEY_ZERO_GAS || ""
 const PRIVATE_KEY_DONOR = process.env.PRIVATE_KEY_DONOR || ""
 const FLASHBOTS_RELAY_SIGNING_KEY = process.env.FLASHBOTS_RELAY_SIGNING_KEY || "";
 const RECIPIENT = process.env.RECIPIENT || ""
+const DRY_RUN = !!process.env.DRY_RUN;
 
 if (PRIVATE_KEY_ZERO_GAS === "") {
   console.warn("Must provide PRIVATE_KEY_ZERO_GAS environment variable, corresponding to Ethereum EOA with assets to be transferred")
@@ -46,6 +47,7 @@ const walletZeroGas = new Wallet(PRIVATE_KEY_ZERO_GAS, provider);
 const walletDonor = new Wallet(PRIVATE_KEY_DONOR, provider);
 const walletRelay = new Wallet(FLASHBOTS_RELAY_SIGNING_KEY, provider)
 
+if (DRY_RUN) console.log(`Dry Run (no transactions will be sent to the chain)`);
 console.log(`Zero Gas Account: ${walletZeroGas.address}`)
 console.log(`Donor Account: ${walletDonor.address}`)
 console.log(`Miner Reward: ${MINER_REWARD_IN_WEI.mul(1000).div(ETHER).toNumber() / 1000}`)
@@ -79,6 +81,7 @@ async function main() {
   const gasPrice = await checkSimulation(flashbotsProvider, signedBundle);
   console.log(`Gas Price: ${gasPriceToGwei(gasPrice)} gwei`)
   console.log(await engine.description())
+  if (DRY_RUN) return;
 
   provider.on('block', async (blockNumber) => {
     const gasPrice = await checkSimulation(flashbotsProvider, signedBundle);
