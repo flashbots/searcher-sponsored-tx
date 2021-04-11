@@ -8,13 +8,11 @@ import {
 } from "@flashbots/ethers-provider-bundle";
 import { providers, Wallet } from "ethers";
 import { TransferERC20 } from "./engine/TransferERC20";
-import { Base } from "./engine/Base";
+import { Base as Engine } from "./engine/Base";
 import { checkSimulation, ETHER, gasPriceToGwei, printTransactions } from "./utils";
-// import { CryptoKitties } from "./engine/CryptoKitties";
+import { TransferERC721 } from "./engine/TransferERC721";
 
-require('log-timestamp');
-
-const MINER_REWARD_IN_WEI = ETHER.div(1000).mul(12); // 0.012 ETH
+const MINER_REWARD_IN_WEI = ETHER.div(1000).mul(12);
 const BLOCKS_IN_FUTURE = 2;
 
 const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
@@ -22,6 +20,9 @@ const PRIVATE_KEY_ZERO_GAS = process.env.PRIVATE_KEY_ZERO_GAS || ""
 const PRIVATE_KEY_DONOR = process.env.PRIVATE_KEY_DONOR || ""
 const FLASHBOTS_RELAY_SIGNING_KEY = process.env.FLASHBOTS_RELAY_SIGNING_KEY || "";
 const RECIPIENT = process.env.RECIPIENT || ""
+const ENGINE = process.env.ENGINE || 'erc20';
+const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '';
+const TOKEN_IDS = (process.env.TOKEN_IDS || '').split(',');
 const DRY_RUN = !!process.env.DRY_RUN;
 
 if (PRIVATE_KEY_ZERO_GAS === "") {
@@ -40,6 +41,18 @@ if (RECIPIENT === "") {
   console.warn("Must provide RECIPIENT environment variable, an address which will receive assets")
   process.exit(1)
 }
+if (CONTRACT_ADDRESS === '') {
+  console.warn('Must provide CONTRACT_ADDRESS environment variable, for the token contract to interact with');
+  process.exit(1);
+}
+if (ENGINE !== 'erc20' && ENGINE !== 'erc721') {
+  console.warn('Available ENGINEs are erc20, erc721');
+  process.exit(1);
+}
+if (ENGINE === 'erc721' && TOKEN_IDS === ['']) {
+  console.warn('Must provide comma-separated list of TOKEN_IDS as environment variable if engine is erc721');
+  process.exit(1);
+}
 
 const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL);
 
@@ -48,18 +61,24 @@ const walletDonor = new Wallet(PRIVATE_KEY_DONOR, provider);
 const walletRelay = new Wallet(FLASHBOTS_RELAY_SIGNING_KEY, provider)
 
 if (DRY_RUN) console.log(`Dry Run (no transactions will be sent to the chain)`);
+console.log(`Token Contract Address: ${CONTRACT_ADDRESS}`)
 console.log(`Zero Gas Account: ${walletZeroGas.address}`)
 console.log(`Donor Account: ${walletDonor.address}`)
 console.log(`Miner Reward: ${MINER_REWARD_IN_WEI.mul(1000).div(ETHER).toNumber() / 1000}`)
 
+function getEngine(provider: FlashbotsBundleProvider): Engine {
+  const sender = walletZeroGas.address;
+  if (ENGINE === 'erc20') {
+    return new TransferERC20(provider, sender, RECIPIENT, CONTRACT_ADDRESS);
+  } else if (ENGINE === 'erc721') {
+    return new TransferERC721(provider, sender, RECIPIENT, CONTRACT_ADDRESS, TOKEN_IDS);
+  } else {
+    throw new Error(`Unknown engine ${ENGINE}`);
+  }
+}
+
 async function main() {
-  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay);
-
-  const tokenAddress = "0xFca59Cd816aB1eaD66534D82bc21E7515cE441CF";
-  const engine: Base = new TransferERC20(provider, walletZeroGas.address, RECIPIENT, tokenAddress);
-
-  // const kittyIds = [14925,97811];
-  // const engine: Base = new CryptoKitties(provider, walletZeroGas.address, RECIPIENT, kittyIds);
+  const engine: Engine = getEngine(flashbotsProvider);
 
   const zeroGasTxs = await engine.getZeroGasPriceTx();
   const donorTx = await engine.getDonorTx(MINER_REWARD_IN_WEI);
