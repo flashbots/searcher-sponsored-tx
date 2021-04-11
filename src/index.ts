@@ -24,6 +24,7 @@ const ENGINE = process.env.ENGINE || 'erc20';
 const CONTRACT_ADDRESS = process.env.CONTRACT_ADDRESS || '';
 const TOKEN_IDS = (process.env.TOKEN_IDS || '').split(',');
 const DRY_RUN = !!process.env.DRY_RUN;
+const FLASHBOTS_RELAY_URL = process.env.FLASHBOTS_RELAY_URL || undefined;
 
 if (PRIVATE_KEY_ZERO_GAS === "") {
   console.warn("Must provide PRIVATE_KEY_ZERO_GAS environment variable, corresponding to Ethereum EOA with assets to be transferred")
@@ -78,6 +79,7 @@ function getEngine(provider: FlashbotsBundleProvider): Engine {
 }
 
 async function main() {
+  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay, FLASHBOTS_RELAY_URL);
   const engine: Engine = getEngine(flashbotsProvider);
 
   const zeroGasTxs = await engine.getZeroGasPriceTx();
