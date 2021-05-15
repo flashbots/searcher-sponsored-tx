@@ -15,8 +15,12 @@ Environment Variables
 - ETHEREUM_RPC_URL - Ethereum RPC endpoint. Can not be the same as FLASHBOTS_RPC_URL
 - PRIVATE_KEY_ZERO_GAS - Private key for the compromised Ethereum EOA that owns assets that needs to be transferred
 - PRIVATE_KEY_DONOR - Private key for an account that has ETH that will be used to fund the miner for the "ZERO_GAS" transactions 
-- FLASHBOTS_KEY_ID / FLASHBOTS_SECRET - Flashbots submissions requires an API key. [Apply for an API key here](https://docs.google.com/forms/d/e/1FAIpQLSd4AKrS-vcfW1X-dQvkFY73HysoKfkhcd-31Tj8frDAU6D6aQ/viewform) 
+- FLASHBOTS_RELAY_SIGNING_KEY - Flashbots bundles require to be signed by a private key for reputation tracking. You can use any private key here, it's recommended to use one without any funds.
 - RECIPIENT - Ethereum EOA to receive assets from ZERO_GAS account
+- ENGINE - Either `erc20` or `erc721`, depending on the type of token you want to rescue
+- CONTRACT_ADDRESS - Address of the erc20 or erc721 token contract
+- TOKEN_IDS - For erc721, ids of the tokens to be rescued
+- DRY_RUN - If set, runs a simulation and bails
 
 Setting Miner Reward
 ====================
@@ -27,19 +31,10 @@ const MINER_REWARD_IN_WEI = ETHER.div(1000).mul(12); // 0.012 ETH
 
 This is the amount, in `wei`, sent to `block.coinbase` from the DONOR EOA. This value is specified in TypeScript, instead of an ENVIRONMENT variable, due to how important it is. Setting this to a very large value could result in massive losses of funds to the DONOR EOA. For safety, **do not store large amounts of eth in DONOR EOA**
 
-
-Selecting a different "engine"
-==============================
-This system can operate against different protocols by swapping a new "engine" class that adheres to "Base" functionality in the `main()` function. Available engines:
-- `TransferERC20`
-- `CryptoKitties`
-  
-
-An engine accepts relevant parameters during construction and provides functions to retrieve transaction descriptions to be passed in to Flashbots. Selecting and configuring a different engine requires directly modifying the source, uncommenting the engine and setting the necessary variables.
-
-
 Usage
 ======================
+You can provide the env vars when running the program, or store them in a local `.env` file.
+
 ```
 $ npm install
 $ PRIVATE_KEY_ZERO_GAS=__COMPROMISED_PRIVATE_KEY__ \
