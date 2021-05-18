@@ -82,6 +82,9 @@ async function main() {
     const targetBlockNumber = blockNumber + BLOCKS_IN_FUTURE;
     console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice: ${gasPriceToGwei(gasPrice)} gwei`)
     const bundleResponse = await flashbotsProvider.sendBundle(bundleTransactions, targetBlockNumber);
+    if ('error' in bundleResponse) {
+      throw new Error(bundleResponse.error.message)
+    }
     const bundleResolution = await bundleResponse.wait()
     if (bundleResolution === FlashbotsBundleResolution.BundleIncluded) {
       console.log(`Congrats, included in ${targetBlockNumber}`)
