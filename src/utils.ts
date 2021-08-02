@@ -1,8 +1,9 @@
 import {
-  FlashbotsBundleProvider,
+  FlashbotsBundleProvider, FlashbotsBundleRawTransaction,
   FlashbotsBundleTransaction,
 } from "@flashbots/ethers-provider-bundle";
 import { BigNumber } from "ethers";
+import { parseTransaction } from "ethers/lib/utils";
 
 export const ETHER = BigNumber.from(10).pow(18);
 export const GWEI = BigNumber.from(10).pow(9);
@@ -47,7 +48,7 @@ export async function checkSimulation(
 }
 
 export async function printTransactions(
-  bundleTransactions: Array<FlashbotsBundleTransaction>,
+  bundleTransactions: Array<FlashbotsBundleTransaction | FlashbotsBundleRawTransaction>,
   signedBundle: Array<string>
 ): Promise<void> {
   console.log("--------------------------------");
@@ -55,11 +56,12 @@ export async function printTransactions(
     (
       await Promise.all(
         bundleTransactions.map(
-          async (bundleTx, index) =>
-            `TX #${index}: ${await bundleTx.signer.getAddress()} => ${
-              bundleTx.transaction.to
-            } : ${bundleTx.transaction.data}`
-        )
+          async (bundleTx, index) => {
+            const tx = 'signedTransaction' in bundleTx ? parseTransaction(bundleTx.signedTransaction) : bundleTx.transaction
+            const from = 'signer' in bundleTx ? await bundleTx.signer.getAddress() : tx.from
+
+            return `TX #${index}: ${from} => ${tx.to} : ${tx.data}`
+          })
       )
     ).join("\n")
   );

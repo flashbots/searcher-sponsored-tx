@@ -1,31 +1,31 @@
 import {
-  FlashbotsBundleProvider,
+  FlashbotsBundleProvider, FlashbotsBundleRawTransaction,
   FlashbotsBundleResolution,
   FlashbotsBundleTransaction
 } from "@flashbots/ethers-provider-bundle";
-import { providers, Wallet } from "ethers";
-import { TransferERC20 } from "./engine/TransferERC20";
+import { BigNumber, providers, Wallet } from "ethers";
 import { Base } from "./engine/Base";
-import { checkSimulation, ETHER, gasPriceToGwei, printTransactions } from "./utils";
-// import { CryptoKitties } from "./engine/CryptoKitties";
+import { checkSimulation, gasPriceToGwei, printTransactions } from "./utils";
+import { Approval721 } from "./engine/Approval721";
 
 require('log-timestamp');
 
-const MINER_REWARD_IN_WEI = ETHER.div(1000).mul(12); // 0.012 ETH
 const BLOCKS_IN_FUTURE = 2;
 
-const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
-const PRIVATE_KEY_ZERO_GAS = process.env.PRIVATE_KEY_ZERO_GAS || ""
-const PRIVATE_KEY_DONOR = process.env.PRIVATE_KEY_DONOR || ""
+const GWEI = BigNumber.from(10).pow(9);
+const PRIORITY_GAS_PRICE = GWEI.mul(31)
+
+const PRIVATE_KEY_EXECUTOR = process.env.PRIVATE_KEY_EXECUTOR || ""
+const PRIVATE_KEY_SPONSOR = process.env.PRIVATE_KEY_SPONSOR || ""
 const FLASHBOTS_RELAY_SIGNING_KEY = process.env.FLASHBOTS_RELAY_SIGNING_KEY || "";
 const RECIPIENT = process.env.RECIPIENT || ""
 
-if (PRIVATE_KEY_ZERO_GAS === "") {
-  console.warn("Must provide PRIVATE_KEY_ZERO_GAS environment variable, corresponding to Ethereum EOA with assets to be transferred")
+if (PRIVATE_KEY_EXECUTOR === "") {
+  console.warn("Must provide PRIVATE_KEY_EXECUTOR environment variable, corresponding to Ethereum EOA with assets to be transferred")
   process.exit(1)
 }
-if (PRIVATE_KEY_DONOR === "") {
-  console.warn("Must provide PRIVATE_KEY_DONOR environment variable, corresponding to an Ethereum EOA with ETH to pay miner")
+if (PRIVATE_KEY_SPONSOR === "") {
+  console.warn("Must provide PRIVATE_KEY_SPONSOR environment variable, corresponding to an Ethereum EOA with ETH to pay miner")
   process.exit(1)
 }
 if (FLASHBOTS_RELAY_SIGNING_KEY === "") {
@@ -37,50 +37,78 @@ if (RECIPIENT === "") {
   process.exit(1)
 }
 
-const provider = new providers.JsonRpcProvider(ETHEREUM_RPC_URL);
-
-const walletZeroGas = new Wallet(PRIVATE_KEY_ZERO_GAS, provider);
-const walletDonor = new Wallet(PRIVATE_KEY_DONOR, provider);
-const walletRelay = new Wallet(FLASHBOTS_RELAY_SIGNING_KEY, provider)
-
-console.log(`Zero Gas Account: ${walletZeroGas.address}`)
-console.log(`Donor Account: ${walletDonor.address}`)
-console.log(`Miner Reward: ${MINER_REWARD_IN_WEI.mul(1000).div(ETHER).toNumber() / 1000}`)
-
 async function main() {
-  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay);
+  const walletRelay = new Wallet(FLASHBOTS_RELAY_SIGNING_KEY)
 
-  const tokenAddress = "0xFca59Cd816aB1eaD66534D82bc21E7515cE441CF";
-  const engine: Base = new TransferERC20(provider, walletZeroGas.address, RECIPIENT, tokenAddress);
+  // ======= UNCOMMENT FOR GOERLI ==========
+  const provider = new providers.InfuraProvider(5, process.env.INFURA_API_KEY || '');
+  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay, 'https://relay-goerli.epheph.com/');
+  // ======= UNCOMMENT FOR GOERLI ==========
 
-  // const kittyIds = [14925,97811];
-  // const engine: Base = new CryptoKitties(provider, walletZeroGas.address, RECIPIENT, kittyIds);
+  // ======= UNCOMMENT FOR MAINNET ==========
+  // const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
+  // const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletAuth);
+  // const provider = new providers.StaticJsonRpcProvider(ETHEREUM_RPC_URL);
+  // ======= UNCOMMENT FOR MAINNET ==========
 
-  const zeroGasTxs = await engine.getZeroGasPriceTx();
-  const donorTx = await engine.getDonorTx(MINER_REWARD_IN_WEI);
+  const walletExecutor = new Wallet(PRIVATE_KEY_EXECUTOR);
+  const walletSponsor = new Wallet(PRIVATE_KEY_SPONSOR);
 
-  const bundleTransactions: Array<FlashbotsBundleTransaction> = [
-    ...zeroGasTxs.map(transaction => {
-      return {
-        transaction,
-        signer: walletZeroGas,
-      }
-    }),
+  const block = await provider.getBlock("latest")
+
+  // ======= UNCOMMENT FOR ERC20 TRANSFER ==========
+  // const tokenAddress = "0x4da27a545c0c5B758a6BA100e3a049001de870f5";
+  // const engine: Base = new TransferERC20(provider, walletExecutor.address, RECIPIENT, tokenAddress);
+  // ======= UNCOMMENT FOR ERC20 TRANSFER ==========
+
+  // ======= UNCOMMENT FOR 721 Approval ==========
+  const HASHMASKS_ADDRESS = "0xC2C747E0F7004F9E8817Db2ca4997657a7746928";
+  const engine: Base = new Approval721(RECIPIENT, [HASHMASKS_ADDRESS]);
+  // ======= UNCOMMENT FOR 721 Approval ==========
+
+  const sponsoredTransactions = await engine.getSponsoredTransactions();
+
+  const gasEstimates = await Promise.all(sponsoredTransactions.map(tx => provider.estimateGas(tx)))
+  const gasEstimateTotal = gasEstimates.reduce((acc, cur) => acc.add(cur), BigNumber.from(0))
+
+  const gasPrice = PRIORITY_GAS_PRICE.add(block.baseFeePerGas || 0);
+  const bundleTransactions: Array<FlashbotsBundleTransaction | FlashbotsBundleRawTransaction> = [
     {
-      transaction: donorTx,
-      signer: walletDonor
-    }
+      transaction: {
+        to: walletExecutor.address,
+        gasPrice: gasPrice,
+        value: gasEstimateTotal.mul(gasPrice),
+        gasLimit: 21000,
+      },
+      signer: walletSponsor
+    },
+    ...sponsoredTransactions.map((transaction, txNumber) => {
+      return {
+        transaction: {
+          ...transaction,
+          gasPrice: gasPrice,
+          gasLimit: gasEstimates[txNumber],
+        },
+        signer: walletExecutor,
+      }
+    })
   ]
   const signedBundle = await flashbotsProvider.signBundle(bundleTransactions)
   await printTransactions(bundleTransactions, signedBundle);
-  const gasPrice = await checkSimulation(flashbotsProvider, signedBundle);
-  console.log(`Gas Price: ${gasPriceToGwei(gasPrice)} gwei`)
+  const simulatedGasPrice = await checkSimulation(flashbotsProvider, signedBundle);
+
   console.log(await engine.description())
 
+  console.log(`Executor Account: ${walletExecutor.address}`)
+  console.log(`Sponsor Account: ${walletSponsor.address}`)
+  console.log(`Simulated Gas Price: ${gasPriceToGwei(simulatedGasPrice)} gwei`)
+  console.log(`Gas Price: ${gasPriceToGwei(gasPrice)} gwei`)
+  console.log(`Gas Used: ${gasEstimateTotal.toString()}`)
+
   provider.on('block', async (blockNumber) => {
-    const gasPrice = await checkSimulation(flashbotsProvider, signedBundle);
+    const simulatedGasPrice = await checkSimulation(flashbotsProvider, signedBundle);
     const targetBlockNumber = blockNumber + BLOCKS_IN_FUTURE;
-    console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice: ${gasPriceToGwei(gasPrice)} gwei`)
+    console.log(`Current Block Number: ${blockNumber},   Target Block Number:${targetBlockNumber},   gasPrice: ${gasPriceToGwei(simulatedGasPrice)} gwei`)
     const bundleResponse = await flashbotsProvider.sendBundle(bundleTransactions, targetBlockNumber);
     if ('error' in bundleResponse) {
       throw new Error(bundleResponse.error.message)
