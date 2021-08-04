@@ -68,7 +68,12 @@ async function main() {
 
   const sponsoredTransactions = await engine.getSponsoredTransactions();
 
-  const gasEstimates = await Promise.all(sponsoredTransactions.map(tx => provider.estimateGas(tx)))
+  const gasEstimates = await Promise.all(sponsoredTransactions.map(tx =>
+    provider.estimateGas({
+      ...tx,
+      from: tx.from === undefined ? walletExecutor.address : tx.from
+    }))
+  )
   const gasEstimateTotal = gasEstimates.reduce((acc, cur) => acc.add(cur), BigNumber.from(0))
 
   const gasPrice = PRIORITY_GAS_PRICE.add(block.baseFeePerGas || 0);
