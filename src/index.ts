@@ -47,8 +47,8 @@ async function main() {
 
   // ======= UNCOMMENT FOR MAINNET ==========
   // const ETHEREUM_RPC_URL = process.env.ETHEREUM_RPC_URL || "http://127.0.0.1:8545"
-  // const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletAuth);
   // const provider = new providers.StaticJsonRpcProvider(ETHEREUM_RPC_URL);
+  // const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay);
   // ======= UNCOMMENT FOR MAINNET ==========
 
   const walletExecutor = new Wallet(PRIVATE_KEY_EXECUTOR);
@@ -68,7 +68,12 @@ async function main() {
 
   const sponsoredTransactions = await engine.getSponsoredTransactions();
 
-  const gasEstimates = await Promise.all(sponsoredTransactions.map(tx => provider.estimateGas(tx)))
+  const gasEstimates = await Promise.all(sponsoredTransactions.map(tx =>
+    provider.estimateGas({
+      ...tx,
+      from: tx.from === undefined ? walletExecutor.address : tx.from
+    }))
+  )
   const gasEstimateTotal = gasEstimates.reduce((acc, cur) => acc.add(cur), BigNumber.from(0))
 
   const gasPrice = PRIORITY_GAS_PRICE.add(block.baseFeePerGas || 0);
