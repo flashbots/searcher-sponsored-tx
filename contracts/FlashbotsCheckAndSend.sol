@@ -8,7 +8,7 @@ pragma experimental ABIEncoderV2;
 
 // This contract performs one or many staticcall's, compares their output, and pays
 // the miner directly if all calls exactly match the specified result
-// For how to use this script, read the Flashbots searcher docs: https://github.com/flashbots/pm/blob/main/guides/searcher-onboarding.md
+// For how to use this script, read the Flashbots searcher docs: https://docs.flashbots.net/flashbots-auction/searchers/quick-start/
 contract FlashbotsCheckAndSend {
     function check32BytesAndSend(address _target, bytes memory _payload, bytes32 _resultMatch) external payable {
         _check32Bytes(_target, _payload, _resultMatch);
