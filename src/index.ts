@@ -66,6 +66,11 @@ async function main() {
   const engine: Base = new Approval721(RECIPIENT, [HASHMASKS_ADDRESS]);
   // ======= UNCOMMENT FOR 721 Approval ==========
 
+  // ======= UNCOMMENT FOR CryptoKitties ==========
+  // const KITTY_IDS = [KITTY_ID1,KITTY_ID2]
+  // const engine: Base = new CryptoKitties(provider, walletExecutor.address, RECIPIENT, KITTY_IDS);
+  // ======= UNCOMMENT FOR CryptoKitties ==========
+
   const sponsoredTransactions = await engine.getSponsoredTransactions();
 
   const gasEstimates = await Promise.all(sponsoredTransactions.map(tx =>
