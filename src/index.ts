@@ -42,7 +42,7 @@ async function main() {
 
   // ======= UNCOMMENT FOR GOERLI ==========
   const provider = new providers.InfuraProvider(5, process.env.INFURA_API_KEY || '');
-  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay, 'https://relay-goerli.epheph.com/');
+  const flashbotsProvider = await FlashbotsBundleProvider.create(provider, walletRelay, 'https://relay-goerli.flashbots.net');
   // ======= UNCOMMENT FOR GOERLI ==========
 
   // ======= UNCOMMENT FOR MAINNET ==========
